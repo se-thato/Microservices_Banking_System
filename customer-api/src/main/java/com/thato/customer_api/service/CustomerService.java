@@ -1,5 +1,8 @@
 package com.thato.customer_api.service;
 import com.thato.customer_api.dto.*;
+import com.thato.customer_api.exception.BusinessException;
+import com.thato.customer_api.exception.ResourceNotFoundException;
+import com.thato.customer_api.exception.UnauthorizedException;
 import com.thato.customer_api.model.Customer;
 import com.thato.customer_api.model.CustomerStatus;
 import com.thato.customer_api.repository.CustomerRepository;
@@ -40,14 +43,18 @@ public class CustomerService {
         // CustomerResponseDTO = what we send back after a user have registered
 
         if (customerRepository.existsByEmail(dto.getEmail())) {
-            throw new RuntimeException("Email is already registered");
+            throw new BusinessException(
+                    "EMAIL_ALREADY_REGISTERED",
+                    "Email is already registered: " + dto.getEmail());
             // This checks BEFORE saving and if email exists, it will stop immediately
-            // Without this check, the DB would throw a confusing SQL error
+            // Without this check, the DB would throw a confusing SQL error (400)
             // This gives a clear, readable error message to the frontend
         }
 
         if (customerRepository.existsByIdNumber(dto.getIdNumber())) {
-            throw new RuntimeException("ID number is already registered");
+            throw new BusinessException(
+                    "ID_NUMBER_ALREADY_REGISTERED",
+                    "ID number is already registered");
             // Checks for ID number,it must be unique per customer
             // Two people cannot share an ID number
         }
@@ -97,11 +104,15 @@ public class CustomerService {
         // For now returning CustomerResponseDTO
 
         Customer customer = customerRepository.findByEmail(dto.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new UnauthorizedException(
+                        "INVALID_CREDENTIALS",
+                        "Invalid email or password"));
         // Find customer by their email, if not found throw an error
 
         if (!passwordEncoder.matches(dto.getPassword(), customer.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
+            throw new UnauthorizedException(
+                    "INVALID_CREDENTIALS",
+                    "Invalid email or password");
             // passwordEncoder.matches() compares:
             // the plain password the user typed (dto.getPassword())
             // against the hashed password stored in DB (customer.getPassword())
@@ -110,12 +121,17 @@ public class CustomerService {
         }
 
         if (customer.getStatus() != CustomerStatus.ACTIVE) {
-            throw new RuntimeException("Account is not active. Please contact support");
+            throw new UnauthorizedException(
+                    "ACCOUNT_NOT_ACTIVE",
+                    "Account is not active. Please contact support");
             // this means if the user status is INACTIVE return the error message
             // If status of the user is INACTIVE or SUSPENDED must not be able to login
         }
 
-        String token = jwtTokenGenerator.generateToken(customer.getEmail());
+        String token = jwtTokenGenerator.generateToken(
+                customer.getEmail(),
+                customer.getId(),
+                customer.getRole().name());
         // this will call jwtGenerator.generateToken()
 
 
@@ -136,7 +152,9 @@ public class CustomerService {
         // Changed return type from Customer to CustomerResponseDTO
 
         Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "CUSTOMER_NOT_FOUND",
+                        "Customer not found with id: " + id));
         // orElseThrow means if empty, throw this error
         // e.g. "Customer not found with id: 42"
 
@@ -170,12 +188,16 @@ public class CustomerService {
         // Customer can only update email and phone number
 
         Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "CUSTOMER_NOT_FOUND",
+                        "Customer not found with id: " + id));
 
 
         if (!customer.getEmail().equals(dto.getEmail()) &&
                 customerRepository.existsByEmail(dto.getEmail())) {
-            throw new RuntimeException("Email is already in use");
+            throw new BusinessException(
+                    "EMAIL_ALREADY_IN_USE",
+                    "Email is already in use by another account");
             // first the db should check if is any email same to this meaning is it taken by anyone
             // existsByEmail(dto.getEmail()) = already exists in DB
             // Then give the error if the email is already been taken by another user
@@ -203,7 +225,9 @@ public class CustomerService {
         // Admin can update names, contact details, and status, every user details
 
         Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "CUSTOMER_NOT_FOUND",
+                        "Customer not found with id: " + id));
         // Find the customer first
 
         if (!customer.getEmail().equals(dto.getEmail()) &&
@@ -243,7 +267,9 @@ public class CustomerService {
     //Deleting the customer from DB(admin only)
     public void deleteCustomer(Long id) {
         Customer customer = customerRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Customer not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "CUSTOMER_NOT_FOUND",
+                        "Customer not found with id: " + id));
         // first the admin must check customer exists before trying to delete
         // If the ID doesn't exist, deleteById silently does nothing
         // This way we throw a clear error if customer not found

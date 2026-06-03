@@ -63,4 +63,29 @@ public class JwtTokenExtractor {
         // .getExpiration() gets the Date we stored
         // with .expiration(new Date(...)) in JwtTokenGenerator
     }
+
+
+    public Long extractCustomerId(String token) {
+        // this reads the customerId stored inside the token
+
+        Object customerId = extractAllClaims(token).get("customerId");
+        //grtting the customerId claim from the token payload
+
+        if (customerId instanceof Integer) {
+            return ((Integer) customerId).longValue();
+            //JSON will store numbers as Interger, convert to Long to match the ID type
+        }
+
+        if (customerId instanceof Long) {
+            return (Long) customerId;
+        }
+        return null;
+    }
+
+    public String extractRole(String token) {
+        //this the reads the role inside the token then return ROLE_ADMIN or ROLE_CUSTOMER
+
+        Object role = extractAllClaims(token).get("role");
+        return role != null ? role.toString() : "ROLE_CUSTOMER"; //default to ROLE_CUSTOMER if not found
+    }
 }

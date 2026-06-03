@@ -50,6 +50,13 @@ public class SecurityConfig {
                                 // register and login are open to everyone
                                 // these are the only ways to GET a token in the first place
 
+                                //swagger doc implementation
+                                .requestMatchers(
+                                        "/swagger-ui/**",
+                                        "/v3/api-docs/**",
+                                        "/swagger-ui.html"
+                                ).permitAll()
+
                                 // Admin only endpoints
                                 .requestMatchers(
                                         HttpMethod.GET, "/api/customers"
