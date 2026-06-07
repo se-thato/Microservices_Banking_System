@@ -1,4 +1,5 @@
 package com.thato.customer_api.service;
+import com.thato.customer_api.client.BankingClient;
 import com.thato.customer_api.dto.*;
 import com.thato.customer_api.exception.BusinessException;
 import com.thato.customer_api.exception.ResourceNotFoundException;
@@ -24,17 +25,19 @@ public class CustomerService {
     @Autowired
     private CustomerRepository customerRepository;
 
-
     private final PasswordEncoder passwordEncoder;
-
     private final JwtTokenGenerator jwtTokenGenerator;
+    private final BankingClient bankingClient;
+
 
     public CustomerService(CustomerRepository customerRepository,
                            PasswordEncoder passwordEncoder,
-                           JwtTokenGenerator jwtTokenGenerator) {
+                           JwtTokenGenerator jwtTokenGenerator,
+                           BankingClient bankingClient) {
         this.customerRepository = customerRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenGenerator = jwtTokenGenerator;
+        this.bankingClient = bankingClient;
     }
 
     //Register section
@@ -91,6 +94,15 @@ public class CustomerService {
         Customer savedCustomer = customerRepository.save(customer);
         // Save the Customer object to the database
         // Returns the saved customer WITH the generated ID filled in
+
+        String internalToken = jwtTokenGenerator.generateToken(
+                savedCustomer.getEmail(),
+                savedCustomer.getId(),
+                savedCustomer.getRole().name()
+        ); //creating a token so banking api can authenticate, the auto account creation request
+
+        bankingClient.createDefaultAccount(savedCustomer.getId(), internalToken);
+        //so if Banking API is down registration still succeeds
 
         return convertToResponseDTO(savedCustomer);
         // Convert the saved Customer model → CustomerResponseDTO

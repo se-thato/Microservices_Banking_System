@@ -16,7 +16,7 @@ public class RegisterRequestDTO {
 
     @NotBlank(message = "First name is Required")
     @Size(min = 3, max = 100, message = "First name should be between 3 and 100 characters")
-    private String firstName; // we should have a username on register form
+    private String firstName; // we should have a username on regist er form
 
 
     @NotBlank(message = "Last name is required")
