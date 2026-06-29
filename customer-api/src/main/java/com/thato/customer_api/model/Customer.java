@@ -104,6 +104,14 @@ public class Customer {
     private LocalDateTime updatedAt;
 
 
+    @Column(name = "failed_login_attempts", nullable = false)
+    private Integer failedLoginAttempts;
+    // this counts consecutive failed login or PIN attempts
+
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
+
 
     @PrePersist
     //This method happens automatically just before a new customer is inserted in the DB for the first time
@@ -120,6 +128,10 @@ public class Customer {
             role = CustomerRole.ROLE_CUSTOMER;
             //so every customer defaults to ROLE_CUSTOMER
             //admin must manually assigned
+        }
+
+        if (failedLoginAttempts == null) {
+            failedLoginAttempts = 0; //new user/customer starts with 0 login attempts
         }
     }
 

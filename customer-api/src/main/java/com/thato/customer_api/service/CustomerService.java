@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,10 @@ import java.util.stream.Collectors;
 @Service
 // Spring manages it and makes it available wherever needed via @Autowired
 public class CustomerService {
+
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+
+    private static final long LOCKOUT_DURATION_MINUTES = 30; // acc will be locked for 30 minutes
 
     @Autowired
     private CustomerRepository customerRepository;
@@ -121,17 +126,60 @@ public class CustomerService {
                         "Invalid email or password"));
         // Find customer by their email, if not found throw an error
 
-        if (!passwordEncoder.matches(dto.getPassword(), customer.getPassword())) {
+
+        //checking if the account is currently locked or not
+        if (customer.getLockedUntil() != null
+            && customer.getLockedUntil().isAfter(LocalDateTime.now())) {
+
+
+            long minutesRemaining = java.time.Duration.between(
+                    LocalDateTime.now(), customer.getLockedUntil()
+            ).toMinutes() + 1;
+            //this calculates how many minutes left until unlock
+
             throw new UnauthorizedException(
-                    "INVALID_CREDENTIALS",
-                    "Invalid email or password");
-            // passwordEncoder.matches() compares:
-            // the plain password the user typed (dto.getPassword())
-            // against the hashed password stored in DB (customer.getPassword())
-            // Returns true if they match, false if not
-            // We NEVER hash and compare manually — BCrypt handles this
+                    "ACCOUNT_LOCKED",
+                    "Account is locked due to many failed attempts. " + "Please try again in " + minutesRemaining + " minute(s)"
+            );
         }
 
+
+        //now checking if the account:  was locked but time has passed?
+        if (customer.getLockedUntil() != null && customer.getLockedUntil().isBefore(LocalDateTime.now())) {
+            //meaning lock has expired then reset everithing
+            customer.setFailedLoginAttempts(0);
+            customer.setLockedUntil(null);
+            //auto unlocks, meaning user gets a fresh start
+        }
+
+        //verifying password
+        if (!passwordEncoder.matches(dto.getPassword(), customer.getPassword())) {
+
+            //wrong passwoed
+            int attempts = customer.getFailedLoginAttempts() + 1;
+            customer.setFailedLoginAttempts(attempts);
+
+            if (attempts >= MAX_FAILED_ATTEMPTS) {
+                //if attemps are greater than 5
+                customer.setLockedUntil(LocalDateTime.now().plusMinutes(LOCKOUT_DURATION_MINUTES));
+
+                customerRepository.save(customer);
+
+                throw new UnauthorizedException(
+                        "ACCOUNT_LOCKED",
+                        "Too many failed attempts. Account locked for " + LOCKOUT_DURATION_MINUTES + " minutes"
+                );
+            }
+
+            customerRepository.save(customer);
+
+            int remaining = MAX_FAILED_ATTEMPTS - attempts;
+            throw new UnauthorizedException(
+                    "INVALID_CREDENTIALS",
+                    "Invalid email or password. " + remaining + " attempt(s) remaining before lockout");
+        }
+
+        //checking if the account ACTIVE
         if (customer.getStatus() != CustomerStatus.ACTIVE) {
             throw new UnauthorizedException(
                     "ACCOUNT_NOT_ACTIVE",
@@ -139,6 +187,13 @@ public class CustomerService {
             // this means if the user status is INACTIVE return the error message
             // If status of the user is INACTIVE or SUSPENDED must not be able to login
         }
+
+        //Reset failed attemps
+        customer.setFailedLoginAttempts(0);
+        customer.setLockedUntil(null);
+        customerRepository.save(customer);
+        //successful login will then reste everything
+
 
         String token = jwtTokenGenerator.generateToken(
                 customer.getEmail(),
@@ -155,6 +210,64 @@ public class CustomerService {
                 .customer(convertToResponseDTO(customer))
                 .expiresIn(86400000) //expires after 24 hours
                 .build();
+    }
+
+
+    //banking api informing customer api that the customer has entered 3 wrong attemps, now lock them
+    public void recordFailedPinAttempts(Long customerId) {
+        //this is called by banking api when customer enters wrong pin
+
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "CUSTOMER_NOT_FOUND",
+                        "Customer not found with id: " + customerId
+                ));
+
+
+        //now checking if lock expired then reset if so(expires after 30 minutes)
+        if (customer.getLockedUntil() != null && customer.getLockedUntil().isBefore(LocalDateTime.now())) {
+            customer.setFailedLoginAttempts(0);
+            customer.setLockedUntil(null);
+        }
+
+        int attempts = customer.getFailedLoginAttempts() + 1;
+        customer.setFailedLoginAttempts(attempts);
+
+        if (attempts >= 3) {
+            customer.setLockedUntil(LocalDateTime.now().plusMinutes(LOCKOUT_DURATION_MINUTES));
+        }
+
+        customerRepository.save(customer);
+    }
+
+
+    //the following will be called when the PIN is correct
+    public void resetFailedAttempts(Long customerId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "CUSTOMER_NOT_FOUND",
+                        "Customer not found with id: " + customerId
+                ));
+
+        customer.setFailedLoginAttempts(0);
+        customer.setLockedUntil(null);
+
+        customerRepository.save(customer);
+    }
+
+
+    public boolean isAccountLocked(Long customerId) {
+        //so this boolean is called by BAnking API before checking PIN
+        //so if acc is locked Banking API rejects without checking the PIN
+
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "CUSTOMER_NOT_FOUND",
+                        "Account not found with id: " + customerId
+                ));
+
+
+        return customer.getLockedUntil() != null && customer.getLockedUntil().isAfter(LocalDateTime.now());
     }
 
 
