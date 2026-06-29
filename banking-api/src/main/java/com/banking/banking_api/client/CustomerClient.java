@@ -113,4 +113,59 @@ public class CustomerClient {
             return null;
         }
     }
+
+    //is account locked ??
+    public boolean isAccountLocked(Long customerId, String token) {
+        try {
+            String url = CUSTOMER_API_URL + "/api/customers/internal/" + customerId + " /locked";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + token);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url, HttpMethod.GET, entity, Map.class
+            );
+
+            Map body = response.getBody();
+            return body != null && Boolean.TRUE.equals(body.get("locked"));
+
+        } catch (Exception e) {
+            return false;
+        } // is the Customer AP unreachable, don't block, fail open
+    }
+
+
+    public void recordFailedPinAttempts(Long customerId, String token) {
+        try {
+        String url = CUSTOMER_API_URL + "/api/customers/internal/" + customerId + "/record-failed-pin";
+
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        restTemplate.exchange(url, HttpMethod.POST, entity, Void.class);
+
+        } catch (Exception e) {
+            System.out.println("Could not record failed PIN attempt: " + e.getMessage());
+        }
+    }
+
+
+    public void resetFailedAttempts(Long customerId, String token) {
+        try {
+            String url = CUSTOMER_API_URL + "/api/custmers/internal/" + customerId + "/reset-failed-attempts";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + token);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            restTemplate.exchange(url, HttpMethod.POST, entity, Void.class);
+
+        } catch (Exception e) {
+            System.out.println("Could not reset failed attempts: " + e.getMessage());
+        }
+    }
+
 }

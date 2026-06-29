@@ -42,9 +42,12 @@ public class InternalBankingController {
     //payment API will have to verify the PIN before processing payment
     @PostMapping("/verify-pin")
     public ResponseEntity<PinVerificationResponseDTO> verifyPin(
-            @Valid @RequestBody PinVerificationRequestDTO dto) {
+            @Valid @RequestBody PinVerificationRequestDTO dto,
+            @RequestHeader("Authorization") String authHeader) {
 
-        PinVerificationResponseDTO response = bankingService.verifyAccountPin(dto);
+        String token = authHeader.replace("Bearer ", "");
+
+        PinVerificationResponseDTO response = bankingService.verifyAccountPin(dto, token);
 
         return ResponseEntity.ok(response);
     }

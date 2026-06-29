@@ -261,16 +261,26 @@ public class BankingService {
 
 
     //Now verify PIN(internal)
-    public PinVerificationResponseDTO verifyAccountPin(PinVerificationRequestDTO dto) {
+    public PinVerificationResponseDTO verifyAccountPin(PinVerificationRequestDTO dto, String token) {
         //this will be called by Payment api before processing the payment
         //checks first if the customer entered the correct PIN
 
         Account account = accountRepository.findById(dto.getAccountId())
-                // ☝️ dto.getAccountId() — calling method ON the dto object
+                //dto.getAccountId() — calling method ON the dto object
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "ACCOUNT_NOT_FOUND",
                         "No Account found with id: " + dto.getAccountId()
                 ));
+
+        //checking if Account is locked
+        boolean isLocked = customerClient.isAccountLocked(account.getCustomerId(), token);
+
+        if (isLocked) {
+            throw new BusinessException(
+                    "ACCOUNT_LOCKED",
+                    "Account is locked due too many failed PIN attemps. " + "Please try again later"
+            );
+        }
 
         //find customer's PIN using customerId
         CustomerPin customerPin = customerPinRepository
@@ -284,10 +294,18 @@ public class BankingService {
 
         boolean isValid = passwordEncoder.matches(
                 dto.getPin(),
-                // ☝️ dto.getPin() — calling method ON the dto object
+                //dto.getPin() — calling method ON the dto object
                 customerPin.getPin()
                 //compare the plain pin entered by the customer against customer level PIN
         );
+
+        if (isValid) {
+            //if pin is correct: reset failed attempts
+            customerClient.resetFailedAttempts(account.getCustomerId(), token);
+        } else {
+            //if the pin is wrong record failed attempt
+            customerClient.recordFailedPinAttempts(account.getCustomerId(), token);
+        }
 
         return PinVerificationResponseDTO.builder()
                 .valid(isValid)
@@ -310,7 +328,7 @@ public class BankingService {
         if (account.getStatus() != AccountStatus.ACTIVE) {
             throw new BusinessException(
                     "ACCOUNT_NOT_ACTIVE",
-                    // ☝️ FIXED: was ACCOUNT_NOT_FOUND — wrong error code
+                    //was ACCOUNT_NOT_FOUND — wrong error code
                     "Account is not active and can not make transactions"
             );
         }
