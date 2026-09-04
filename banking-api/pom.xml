@@ -102,6 +102,12 @@
 			<version>3.0.3</version>
 			<scope>compile</scope>
 		</dependency>
+
+		<!--Apache Kafka for async bulk payment processing-->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
