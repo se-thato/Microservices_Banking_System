@@ -1,8 +1,8 @@
 package com.banking.payment_api.kafka;
 
 import com.banking.payment_api.dto.BulkPaymentEventDTO;
-import jakarta.websocket.SendResult;
-import lombok.Value;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.support.SendResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -36,10 +36,10 @@ public class BulkPaymentProducer {
         //this publishes ONE payment event to kafka, called once per payment in bulk batch
 
         logger.info("Publishing bulk payment event: batchId={}, ref={}",
-                event.getBatchId()event.getPaymentReference());
+                event.getBatchId(), event.getPaymentReference());
 
 
-        CompletableFuture<SendResult<String,BulkPaymentEventDTO>> future = kafkaTemplate.send(
+        CompletableFuture<SendResult<String, BulkPaymentEventDTO>> future = kafkaTemplate.send(
                 bulkInitiatedTopic,
                 event.getPaymentReference(),
                 event //the actual payment data - JSON format

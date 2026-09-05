@@ -39,7 +39,7 @@ public class PaymentValidationService {
 
 
     //Validating the amount
-    private void validateAmount(BigDecimal amount) {
+    public void validateAmount(BigDecimal amount) {
         //this ensures or checks if the amount is above zero, abd canot exceed single transaction limit
 
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {

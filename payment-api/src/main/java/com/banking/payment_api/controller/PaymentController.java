@@ -4,6 +4,7 @@ import com.banking.payment_api.dto.*;
 import com.banking.payment_api.exception.UnauthorizedException;
 import com.banking.payment_api.kafka.BulkPaymentProducer;
 import com.banking.payment_api.model.PaymentStatus;
+import com.banking.payment_api.repository.PaymentRepository;
 import com.banking.payment_api.security.JwtTokenExtractor;
 import com.banking.payment_api.service.BulkPaymentService;
 import com.banking.payment_api.service.PaymentService;
@@ -22,13 +23,16 @@ public class PaymentController {
     private final JwtTokenExtractor jwtTokenExtractor;
     //extract customer id from token
     private final BulkPaymentService bulkPaymentService;
+    private final PaymentRepository paymentRepository;
 
     public PaymentController(PaymentService paymentService,
                              JwtTokenExtractor jwtTokenExtractor,
-                             BulkPaymentService bulkPaymentService) {
+                             BulkPaymentService bulkPaymentService,
+                             PaymentRepository paymentRepository) {
         this.paymentService = paymentService;
         this.jwtTokenExtractor = jwtTokenExtractor;
         this.bulkPaymentService = bulkPaymentService;
+        this.paymentRepository = paymentRepository;
     }
 
     //customer initiating the payment
@@ -98,7 +102,7 @@ public class PaymentController {
         BulkPaymentResponseDTO response = bulkPaymentService.processBulkPayment(dto, customerId, token);
         //this publishes all payments to kafka and returns immediately, which all will happen in the background
 
-        return ResponseEntity.accepted().build(response);
+        return ResponseEntity.accepted().body(response);
         //if i get 202 ACCEPTED meaning the request is received, processing in the background
     }
 
@@ -119,7 +123,7 @@ public class PaymentController {
         long completed = paymentRepository
                 .countByTransactionReferenceStartingWithAndStatus(batchId, PaymentStatus.COMPLETED);
         long failed = paymentRepository
-                .cauntByTransactionReferenceStartingWithAndStatus(batchId, PaymentStatus.FAILED);
+                .countByTransactionReferenceStartingWithAndStatus(batchId, PaymentStatus.FAILED);
 
         long pending = total - completed - failed;
 

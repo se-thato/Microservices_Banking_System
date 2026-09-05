@@ -1,13 +1,15 @@
 package com.banking.payment_api.config;
 
-import lombok.Value;
+import org.springframework.beans.factory.annotation.Value;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.config.TopicBuilder;
 
 @Configuration
 public class KafkaConfig {
 
-    @Value("${kafka.topic.bulk,initiated}")
+    @Value("${kafka.topic.bulk.initiated}")
     private String bulkInitiatedTopic;
 
     @Value("${kafka.topic.payment.completed}")

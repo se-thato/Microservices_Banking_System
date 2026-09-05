@@ -52,7 +52,7 @@ public class BulkPaymentService {
 
 
     public BulkPaymentResponseDTO processBulkPayment(
-            BulkPaymentRequestDTO dto, Long customerId, String token) {
+            BulkPaymentRequestsDTO dto, Long customerId, String token) {
 
         //We first Get sender's account
         Map<String, Object> senderAccount =
