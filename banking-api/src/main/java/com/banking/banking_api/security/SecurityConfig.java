@@ -41,9 +41,17 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                                //swagger doc implementation
+                                .requestMatchers(
+                                        "/swagger-ui/**",
+                                        "/v3/api-docs/**",
+                                        "/swagger-ui.html"
+                                ).permitAll()
+
                                 .anyRequest().authenticated()
                         //other endpoints will require valid token
                 )
+
 
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         // token is checked and authentication is set before anything else

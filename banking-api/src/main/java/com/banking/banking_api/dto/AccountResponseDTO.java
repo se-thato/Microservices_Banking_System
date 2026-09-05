@@ -2,6 +2,7 @@ package com.banking.banking_api.dto;
 
 import com.banking.banking_api.model.AccountStatus;
 import com.banking.banking_api.model.AccountType;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -18,7 +19,10 @@ public class AccountResponseDTO {
     private String accountHolder; // the customers full name fetched from Customer API
     // which customer this belongs to
     private String accountNumber;
-    private AccountType accountType;
+
+    @NotNull(message = "Account type is required")
+    private AccountType accountType; //user can choose if is SAVINGS, CURRENT or BUSINESS account
+
     private AccountStatus status;
     // ACTIVE, INACTIVE, or CLOSED
 
