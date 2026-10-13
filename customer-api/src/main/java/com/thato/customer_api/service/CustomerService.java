@@ -27,8 +27,7 @@ public class CustomerService {
 
     private static final long LOCKOUT_DURATION_MINUTES = 30; // acc will be locked for 30 minutes
 
-    @Autowired
-    private CustomerRepository customerRepository;
+    @Autowired private CustomerRepository customerRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenGenerator jwtTokenGenerator;
