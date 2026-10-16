@@ -33,7 +33,7 @@ public class Payment {
     //this will display the user account number
 
 
-    @Column(name = "to_account_numner")
+    @Column(name = "to_account_number")
     private String toAccountNumber;
     //to which account number
 
@@ -73,7 +73,7 @@ public class Payment {
 
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "staus", nullable = false)
+    @Column(name = "status", nullable = false)
     private PaymentStatus status;
 
 
