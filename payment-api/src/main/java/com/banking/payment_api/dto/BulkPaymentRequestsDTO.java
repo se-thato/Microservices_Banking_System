@@ -25,7 +25,7 @@ public class BulkPaymentRequestsDTO {
     @NotEmpty(message = "Payment list cannot be empty")
     @Size(min = 1, max = 1000, message = "Bulk payment supports 1 to 1000 payments")
     private List<BulkPaymentItemDTO> payments;
-    //this is the list of all payments to process
+    //this is the list of all payments to process3
     //each item has: toAccountNumber, amount, description
 
     private String batchDescription;
