@@ -15,7 +15,8 @@ public class CustomerClient {
 
     private final RestTemplate restTemplate; // making HTTP calls to other services
 
-    private static final String CUSTOMER_API_URL = "http://localhost:8081";
+//    private static final String CUSTOMER_API_URL = "http://localhost:8081";
+private static final String CUSTOMER_API_URL = "customer-api.up.railway.app";
 
     public CustomerClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
